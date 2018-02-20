@@ -13,9 +13,15 @@
 
 class Body {
 public:
-    Body(const Position &pos, const Velocity &vel);
+    Body(const Position &pos, const Velocity &vel, double mass);
 
-    std::pair<Position, double> calcCenterOfMass(Body body);
+    std::pair<Position, double> calcCenterOfMass(Body body) const;
+
+    Position getPosition() const;
+
+    Velocity getVelocity() const;
+
+    double getMass() const;
 
 private:
     Position position;

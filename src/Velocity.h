@@ -6,10 +6,9 @@
 #define CHARON_VELOCITY_H
 
 
-class Velocity {
-    double x;
-    double y;
-};
+#include "Vector2.h"
+
+using Velocity = Vector2;
 
 
 #endif //CHARON_VELOCITY_H
