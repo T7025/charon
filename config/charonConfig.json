@@ -1,0 +1,6 @@
+{
+  "results_dir_prefix": "results",
+  "results_filename_prefix": "out",
+  "universe_config": "universeConfig.json",
+  "simulator_config": "simulatorConfig.json"
+}

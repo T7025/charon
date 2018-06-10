@@ -1,25 +1,11 @@
-cmake_minimum_required(VERSION 3.3)
-
-set(REPO ~/CLionProjects/.repo)
-
-project(Test)
-
-project(Example)
 
 include(CTest)
-enable_testing()
 
-include(${REPO}/DownloadProject/DownloadProject.cmake)
-download_project(
-        PROJ                googletest
-        GIT_REPOSITORY      https://github.com/google/googletest.git
-        GIT_TAG             master
-        UPDATE_DISCONNECTED 1
-)
+set(GTEST_SRC
+        BruteForceUniverseTest.cpp
+        main.cpp BarnesHutUniverseTest.cpp)
 
-add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
+add_executable(runUnitTests ${GTEST_SRC})
+target_link_libraries(runUnitTests libcharon gtest gmock_main)
 
-#set(test_SRCS ADD ALL TEST SOURCE FILES HERE)
-add_executable(runUnitTests gtest.cpp ${test_SRCS} BodyTest.cpp Vector2Test.cpp)
-target_link_libraries(runUnitTests gtest gmock core)
-#add_test(runUnitTests runUnitTests) #included in all tutorials but I don't know what it actually does.
+add_test(NAME runUnitTests COMMAND runUnitTests)

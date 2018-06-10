@@ -1,0 +1,6 @@
+{
+  "nr_iterations": 50,
+  "snapshot_delta": 10,
+  "universe_type": "brute_force_multi_thread",
+  "universe_shape": "random_cube"
+}

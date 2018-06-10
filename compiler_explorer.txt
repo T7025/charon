@@ -1,0 +1,828 @@
+// Compiler options: -xc++ -std=c++11 -Wall -Wextra  -O3 -fverbose-asm -ffast-math -march=haswell -fopenmp -ftree-vectorize -fopt-info-vec-optimized
+//Code
+#include <cmath>
+#include <array>
+#include <vector>
+#include <random>
+using fp = double;
+
+class Vector3 {
+public:
+    Vector3() = default;
+    Vector3(const fp x, const fp y, const fp z) : x{x}, y{y}, z{z} {}
+
+    fp x, y, z;
+};
+
+class Universe {
+public:
+    #pragma omp declare simd simdlen(4)
+    std::array<std::array<fp, 4>, 3> calculateAcceleration(const unsigned i) const {
+        std::array<fp, 4> vnax; // vector new accellerations x;
+        std::array<fp, 4> vnay;
+        std::array<fp, 4> vnaz;
+        fp nax = 0, nay = 0, naz = 0;
+        #pragma omp simd reduction(+:nax, nay, naz) safelen(64)
+        for (unsigned j = 0; j < mass.size(); ++j) {
+            if (i != j) {
+                Vector3 diff = {
+                    position[j].x - position[i].x,
+                    position[j].y - position[i].y,
+                    position[j].z - position[i].z
+                };
+                const auto diffx = position[j].x - position[i].x;
+                const auto diffy = position[j].y - position[i].y;
+                const auto diffz = position[j].z - position[i].z;
+                //fp normsq = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+                fp normsq = diffx * diffx + diffy * diffy + diffz * diffz;
+                nax += mass[j] * diff.x * pow(normsq, -3.0/2);
+                nay += mass[j] * diff.y * pow(normsq, -3.0/2);
+                naz += mass[j] * diff.z * pow(normsq, -3.0/2);
+            }
+        }
+
+        return {nax, nay, naz};
+    }
+
+    void calculateNextStep() {
+        for (unsigned i = 0; i < mass.size(); ++i) {
+            position[i].x += velocity[i].x * timeStep + acceleration[i].x * timeStep * timeStep / 2;
+            position[i].y += velocity[i].y * timeStep + acceleration[i].y * timeStep * timeStep / 2;
+            position[i].z += velocity[i].z * timeStep + acceleration[i].z * timeStep * timeStep / 2;        }
+        for (unsigned i = 0; i < mass.size(); ++i) {
+            //newacc.x = nax;
+            acceleration[i]; auto sq = calculateAcceleration(i);
+        }
+    }
+    const fp timeStep = 0.005;
+    std::vector<fp> mass;
+    std::vector<fp> posx;
+    std::vector<fp> posy;
+    std::vector<fp> posz;
+    std::vector<Vector3> position;
+    std::vector<Vector3> velocity;
+    std::vector<Vector3> acceleration;
+};
+
+
+
+int test(const int n) {
+    Universe u{};
+    //#pragma omp simd
+    for (int i = 0; i < n; ++i) {
+        u.mass.emplace_back(rand());
+        //u.mass.emplace_back(1.0);
+        u.position.emplace_back(i,i,i);
+        u.posx.emplace_back(i);
+        u.posy.emplace_back(i);
+        u.posz.emplace_back(i);
+    }
+    u.velocity.resize(n); u.acceleration.resize(n);
+
+    u.calculateNextStep();
+    int res = 0;
+    /*for (auto i : u.mass) {
+        res += i * sqrt(i);
+    }*/
+    res = u.acceleration[n/2].x;
+    return res;
+}
+
+// Code 2
+#include <cmath>
+#include <array>
+#include <vector>
+#include <random>
+using fp = double;
+//#pragma pack(16)
+class Vector3 {
+public:
+    Vector3() = default;
+    Vector3(const fp x, const fp y, const fp z) : x{x}, y{y}, z{z} {}
+
+    fp x, y, z;
+};
+
+#define ARR3_SIZE 3
+class Arr3 : public std::array<fp, ARR3_SIZE> {
+public:
+    Arr3() : std::array<fp, ARR3_SIZE>{} {}
+    Arr3(const fp x, const fp y, const fp z) : std::array<fp, ARR3_SIZE>{x,y,z} {}
+
+    fp norm() const {
+        return std::get<0>(*this) * std::get<0>(*this)
+             + std::get<1>(*this) * std::get<1>(*this)
+             + std::get<2>(*this) * std::get<2>(*this);
+    }
+    #pragma omp declare simd
+    Arr3 &operator+=(const Arr3 &other) {
+        std::get<0>(*this) += std::get<0>(other);
+        std::get<1>(*this) += std::get<1>(other);
+        std::get<2>(*this) += std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator-=(const Arr3 &other) {
+        std::get<0>(*this) -= std::get<0>(other);
+        std::get<1>(*this) -= std::get<1>(other);
+        std::get<2>(*this) -= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator*=(const Arr3 &other) {
+        std::get<0>(*this) *= std::get<0>(other);
+        std::get<1>(*this) *= std::get<1>(other);
+        std::get<2>(*this) *= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator/=(const Arr3 &other) {
+        std::get<0>(*this) /= std::get<0>(other);
+        std::get<1>(*this) /= std::get<1>(other);
+        std::get<2>(*this) /= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator*=(const fp scalar) {
+        std::get<0>(*this) *= scalar;
+        std::get<1>(*this) *= scalar;
+        std::get<2>(*this) *= scalar;
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator/=(const fp scalar) {
+        std::get<0>(*this) /= scalar;
+        std::get<1>(*this) /= scalar;
+        std::get<2>(*this) /= scalar;
+        return *this;
+    }
+};
+
+Arr3 operator-(Arr3 lhs, const Arr3 &rhs) {
+    return lhs -= rhs;
+}
+
+Arr3 operator*(Arr3 lhs, const Arr3 &rhs) {
+    return lhs *= rhs;
+}
+/*
+Arr3 operator*(Arr3 arr, const fp scalar) {
+    return lhs *= rhs;
+}*/
+
+class Universe {
+public:
+    #pragma omp declare simd simdlen(4)
+    std::array<std::array<fp, 4>, 3> calculateAcceleration(const int i) const {
+        std::array<fp, 4> vnax{}; // vector new accellerations x;
+        std::array<fp, 4> vnay{};
+        std::array<fp, 4> vnaz{};
+        //fp nax = 0, nay = 0, naz = 0;
+        //#pragma omp simd reduction(+:nax, nay, naz, vnax) safelen(64)
+
+        for (int j = 0; j < (int)mass.size(); j += 4) {
+            if (i != j) {
+                std::array<fp, 4> vdiffx;
+                std::array<fp, 4> vdiffy;
+                std::array<fp, 4> vdiffz;
+                for (int v = 0; v < 4; ++v) {
+                    vdiffx[v] = posx[j + v] - posx[i + v];
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vdiffy[v] = posy[j + v] - posy[i + v];
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vdiffz[v] = posz[j + v] - posz[i + v];
+                }
+                std::array<fp, 4> vnormsq;
+                for (int v = 0; v < 4; ++v) {
+                    vnormsq[v] = vdiffx[v] * vdiffx[v]
+                                + vdiffy[v] * vdiffy[v]
+                                + vdiffz[v] * vdiffz[v];
+                }
+                //#pragma omp simd
+                for (int v = 0; v < 4; ++v) {
+                    vnax[v] = mass[j + v] * vdiffx[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vnay[v] = mass[j + v] * vdiffy[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vnaz[v] = mass[j + v] * vdiffz[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+            }
+        }
+        return {vnax, vnay, vnaz};
+    }
+
+    #pragma omp declare simd
+    Vector3 calculateA() {
+        return {0,0,0};
+    }
+
+    void calculateNextStep() {
+        for (unsigned i = 0; i < mass.size(); ++i) {
+            position[i].x += velocity[i].x * timeStep + acceleration[i].x * timeStep * timeStep / 2;
+            position[i].y += velocity[i].y * timeStep + acceleration[i].y * timeStep * timeStep / 2;
+            position[i].z += velocity[i].z * timeStep + acceleration[i].z * timeStep * timeStep / 2;
+        }
+        #pragma omp simd
+        for (int i = 0; i < (int)mass.size(); i += 4) {
+            //newacc.x = nax;
+            const auto newaccs = calculateAcceleration(i);
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].x = newaccs[0][v];
+            }
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].y = newaccs[1][v];
+            }
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].z = newaccs[2][v];
+            }
+
+
+            acceleration[i];
+        }
+    }
+    Arr3 getnewaccx(const int i, const int j) const {
+        Arr3 diff = pos[j] - pos[i];
+        fp norm = diff.norm();
+        //Arr3 anorm = {norm, norm, norm};
+        diff *= std::pow<float>(norm, -3.0/2.0) * mass[j];
+        return diff;
+    }
+
+    void calcAcc2() {
+        const int size = (int)mass.size();
+        for (int i = 0; i < size; ++i) {
+            fp newaccx = 0;
+            Arr3 newacc{};
+            //fp newaccy = 0;
+            //fp newaccz = 0;
+            for (int j = 0; j < i; ++j) {
+                //const fp diffx = posx[j] - posx[i];
+                //if (i != j)
+                const auto res = getnewaccx(i, j);
+                //newaccx += res[0] + res.norm();
+                //std::get<0>(newacc) += res[0];
+                newacc += res;
+                //newaccy += posy[j] - posy[i];
+                //newaccz += posz[j] - posz[i];
+            }
+            for (int j = i + 1; j < size; ++j) {
+                //const fp diffx = posx[j] - posx[i];
+                //if (i != j)
+                newaccx += posx[j] - posx[i];
+                //newaccy += posy[j] - posy[i];
+                //newaccz += posz[j] - posz[i];
+            }
+            accx[i] = newaccx + newacc[0]; // + newaccy + newaccz;
+            acc[i] += newacc;
+        }
+    }
+
+    const fp timeStep = 0.005;
+    std::vector<fp> mass;
+    std::vector<fp> posx;
+    std::vector<fp> posy;
+    std::vector<fp> posz;
+    std::vector<Arr3> pos;
+    std::vector<Vector3> position;
+    std::vector<Vector3> velocity;
+    std::vector<Arr3> acc;
+    std::vector<fp> accx;
+    std::vector<Vector3> acceleration;
+};
+
+
+
+int test(const int n) {
+    Universe u{};
+    //#pragma omp simd
+    for (int i = 0; i < n; ++i) {
+        u.mass.emplace_back(rand());
+        //u.mass.emplace_back(1.0);
+        u.position.emplace_back(i,i,i);
+        u.posx.emplace_back(i);
+        u.posy.emplace_back(i);
+        u.posz.emplace_back(i);
+        u.pos.emplace_back(i,i,i);
+    }
+    u.velocity.resize(n); u.acceleration.resize(n);
+    u.accx.resize(n);
+    u.acc.resize(n);
+
+    u.calculateNextStep();
+    int res = 0;
+    /*for (auto i : u.mass) {
+        res += i * sqrt(i);
+    }*/
+    u.calcAcc2();
+    res = u.acceleration[n/2].x;
+    std::vector<fp> a(n);
+    std::vector<fp> b(n);
+    std::vector<fp> c(n);
+    for (int i = 0; i < n; ++i) {
+        a[i] = b[i] + c[i];
+    }
+    res += u.acc[n/2][0] + u.acc[n/2][1] + u.acc[n/2][2];
+
+    return res;
+}
+
+// Compile options 3: -xc++ -std=c++11 -Wall -Wextra  -O3 -fverbose-asm -ffast-math -march=haswell -fopenmp -ftree-vectorize -fopt-info-vec-optimized -falign-loops=32 -falign-functions=32
+// Coder 3:
+#include <cmath>
+#include <array>
+#include <vector>
+#include <random>
+using fp = double;
+#pragma pack(16)
+class Vector3 {
+public:
+    Vector3() = default;
+    Vector3(const fp x, const fp y, const fp z) : x{x}, y{y}, z{z} {}
+
+    fp x, y, z;
+};
+
+#define ARR3_SIZE 3
+class Arr3 : public std::array<fp, ARR3_SIZE> {
+public:
+    Arr3() : std::array<fp, ARR3_SIZE>{} {}
+    Arr3(const fp x, const fp y, const fp z) : std::array<fp, ARR3_SIZE>{x,y,z} {}
+
+    fp norm() const {
+        return std::get<0>(*this) * std::get<0>(*this)
+             + std::get<1>(*this) * std::get<1>(*this)
+             + std::get<2>(*this) * std::get<2>(*this);
+    }
+    #pragma omp declare simd
+    Arr3 &operator+=(const Arr3 &other) {
+        std::get<0>(*this) += std::get<0>(other);
+        std::get<1>(*this) += std::get<1>(other);
+        std::get<2>(*this) += std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator-=(const Arr3 &other) {
+        std::get<0>(*this) -= std::get<0>(other);
+        std::get<1>(*this) -= std::get<1>(other);
+        std::get<2>(*this) -= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator*=(const Arr3 &other) {
+        std::get<0>(*this) *= std::get<0>(other);
+        std::get<1>(*this) *= std::get<1>(other);
+        std::get<2>(*this) *= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator/=(const Arr3 &other) {
+        std::get<0>(*this) /= std::get<0>(other);
+        std::get<1>(*this) /= std::get<1>(other);
+        std::get<2>(*this) /= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator*=(const fp scalar) {
+        std::get<0>(*this) *= scalar;
+        std::get<1>(*this) *= scalar;
+        std::get<2>(*this) *= scalar;
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator/=(const fp scalar) {
+        std::get<0>(*this) /= scalar;
+        std::get<1>(*this) /= scalar;
+        std::get<2>(*this) /= scalar;
+        return *this;
+    }
+};
+
+Arr3 operator+(Arr3 lhs, const Arr3 &rhs) {
+    return lhs += rhs;
+}
+
+Arr3 operator-(Arr3 lhs, const Arr3 &rhs) {
+    return lhs -= rhs;
+}
+
+Arr3 operator*(Arr3 lhs, const Arr3 &rhs) {
+    return lhs *= rhs;
+}
+
+Arr3 operator*(const fp scalar, Arr3 arr) {
+    return arr *= scalar;
+}
+
+Arr3 operator*(Arr3 arr, const fp scalar) {
+    return arr *= scalar;
+}
+
+Arr3 operator/(Arr3 arr, const fp scalar) {
+    return arr /= scalar;
+}
+
+class Universe {
+public:
+    #pragma omp declare simd simdlen(4)
+    std::array<std::array<fp, 4>, 3> calculateAcceleration(const int i) const {
+        std::array<fp, 4> vnax{}; // vector new accellerations x;
+        std::array<fp, 4> vnay{};
+        std::array<fp, 4> vnaz{};
+        //fp nax = 0, nay = 0, naz = 0;
+        //#pragma omp simd reduction(+:nax, nay, naz, vnax) safelen(64)
+
+        for (int j = 0; j < (int)mass.size(); j += 4) {
+            //if (i != j) {
+                std::array<fp, 4> vdiffx;
+                std::array<fp, 4> vdiffy;
+                std::array<fp, 4> vdiffz;
+                for (int v = 0; v < 4; ++v) {
+                    vdiffx[v] = posx[j + v] - posx[i + v];
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vdiffy[v] = posy[j + v] - posy[i + v];
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vdiffz[v] = posz[j + v] - posz[i + v];
+                }
+                std::array<fp, 4> vnormsq;
+                for (int v = 0; v < 4; ++v) {
+                    vnormsq[v] = vdiffx[v] * vdiffx[v]
+                                + vdiffy[v] * vdiffy[v]
+                                + vdiffz[v] * vdiffz[v];
+                }
+                //#pragma omp simd
+                for (int v = 0; v < 4; ++v) {
+                    vnax[v] = mass[j + v] * vdiffx[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vnay[v] = mass[j + v] * vdiffy[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vnaz[v] = mass[j + v] * vdiffz[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+            //}
+        }
+        return {vnax, vnay, vnaz};
+    }
+
+    void calculateNextStep() {
+        for (unsigned i = 0; i < mass.size(); ++i) {
+            position[i].x += velocity[i].x * timeStep + acceleration[i].x * timeStep * timeStep / 2;
+            position[i].y += velocity[i].y * timeStep + acceleration[i].y * timeStep * timeStep / 2;
+            position[i].z += velocity[i].z * timeStep + acceleration[i].z * timeStep * timeStep / 2;
+        }
+        #pragma omp simd
+        for (int i = 0; i < (int)mass.size(); i += 4) {
+            //newacc.x = nax;
+            const auto newaccs = calculateAcceleration(i);
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].x = newaccs[0][v];
+            }
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].y = newaccs[1][v];
+            }
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].z = newaccs[2][v];
+            }
+
+
+            acceleration[i];
+        }
+    }
+    Arr3 getnewaccx(const int i, const int j) const {
+        Arr3 diff = pos[j] - pos[i];
+        fp norm = diff.norm();
+        //Arr3 anorm = {norm, norm, norm};
+        diff *= std::pow<float>(norm, -3.0/2.0) * mass[j];
+        return diff;
+    }
+
+    void calcAcc2() {
+        const int size = (int)mass.size();
+        //#pragma omp simd
+        for (int i = 0; i < size; ++i) {
+            pos[i] += vel[i] * timeStep + acc[i] * (timeStep * timeStep / 2.0);
+        }
+
+        for (int i = 0; i < size; ++i) {
+            Arr3 newacc{};
+            for (int j = 0; j < i; ++j) {
+                newacc += getnewaccx(i, j);
+            }
+            for (int j = i + 1; j < size; ++j) {
+                newacc += getnewaccx(i, j);
+            }
+            vel[i] += (acc[i] + newacc) * (timeStep / 2.0);
+            //accx[i] = newaccx + newacc[0]; // + newaccy + newaccz;
+            acc[i] = std::move(newacc);
+        }
+    }
+
+    const fp timeStep = 0.005;
+    std::vector<Arr3> pos;
+    std::vector<Arr3> vel;
+    std::vector<Arr3> acc;
+
+    std::vector<fp> mass;
+    std::vector<fp> posx;
+    std::vector<fp> posy;
+    std::vector<fp> posz;
+    std::vector<Vector3> position;
+    std::vector<Vector3> velocity;
+    std::vector<fp> accx;
+    std::vector<Vector3> acceleration;
+};
+
+
+
+int test(const int n) {
+    Universe u{};
+    //#pragma omp simd
+    for (int i = 0; i < n; ++i) {
+        u.mass.emplace_back(rand());
+        //u.mass.emplace_back(1.0);
+        u.position.emplace_back(i,i,i);
+        u.posx.emplace_back(i);
+        u.posy.emplace_back(i);
+        u.posz.emplace_back(i);
+        u.pos.emplace_back(i,i,i);
+    }
+    u.velocity.resize(n); u.acceleration.resize(n);
+    u.accx.resize(n);
+    u.vel.resize(n);
+    u.acc.resize(n);
+
+    u.calculateNextStep();
+    int res = 0;
+    /*for (auto i : u.mass) {
+        res += i * sqrt(i);
+    }*/
+    u.calcAcc2();
+    //res = u.acceleration[n/2].x;
+    std::vector<fp> a(n);
+    std::vector<fp> b(n);
+    std::vector<fp> c(n);
+    for (int i = 0; i < n; ++i) {
+        a[i] = b[i] + c[i];
+    }
+    res += u.acc[n/2][0] + u.acc[n/2][1] + u.acc[n/2][2];
+    res += u.vel[n/2][0] + u.vel[n/2][1] + u.vel[n/2][2];
+    return res;
+}
+
+
+// Code 4
+#include <cmath>
+#include <array>
+#include <vector>
+#include <random>
+using fp = double;
+#pragma pack(16)
+class Vector3 {
+public:
+    Vector3() = default;
+    Vector3(const fp x, const fp y, const fp z) : x{x}, y{y}, z{z} {}
+
+    fp x, y, z;
+};
+
+#define ARR3_SIZE 3
+class Arr3 : public std::array<fp, ARR3_SIZE> {
+public:
+    Arr3() : std::array<fp, ARR3_SIZE>{} {}
+    Arr3(const fp x, const fp y, const fp z) : std::array<fp, ARR3_SIZE>{x,y,z} {}
+
+    fp norm() const {
+        return std::get<0>(*this) * std::get<0>(*this)
+             + std::get<1>(*this) * std::get<1>(*this)
+             + std::get<2>(*this) * std::get<2>(*this);
+    }
+    #pragma omp declare simd
+    Arr3 &operator+=(const Arr3 &other) {
+        std::get<0>(*this) += std::get<0>(other);
+        std::get<1>(*this) += std::get<1>(other);
+        std::get<2>(*this) += std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator-=(const Arr3 &other) {
+        std::get<0>(*this) -= std::get<0>(other);
+        std::get<1>(*this) -= std::get<1>(other);
+        std::get<2>(*this) -= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator*=(const Arr3 &other) {
+        std::get<0>(*this) *= std::get<0>(other);
+        std::get<1>(*this) *= std::get<1>(other);
+        std::get<2>(*this) *= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator/=(const Arr3 &other) {
+        std::get<0>(*this) /= std::get<0>(other);
+        std::get<1>(*this) /= std::get<1>(other);
+        std::get<2>(*this) /= std::get<2>(other);
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator*=(const fp scalar) {
+        std::get<0>(*this) *= scalar;
+        std::get<1>(*this) *= scalar;
+        std::get<2>(*this) *= scalar;
+        return *this;
+    }
+    #pragma omp declare simd
+    Arr3 &operator/=(const fp scalar) {
+        std::get<0>(*this) /= scalar;
+        std::get<1>(*this) /= scalar;
+        std::get<2>(*this) /= scalar;
+        return *this;
+    }
+};
+
+Arr3 operator+(Arr3 lhs, const Arr3 &rhs) {
+    return lhs += rhs;
+}
+
+Arr3 operator-(Arr3 lhs, const Arr3 &rhs) {
+    return lhs -= rhs;
+}
+
+Arr3 operator*(Arr3 lhs, const Arr3 &rhs) {
+    return lhs *= rhs;
+}
+
+Arr3 operator*(const fp scalar, Arr3 arr) {
+    return arr *= scalar;
+}
+
+Arr3 operator*(Arr3 arr, const fp scalar) {
+    return arr *= scalar;
+}
+
+Arr3 operator/(Arr3 arr, const fp scalar) {
+    return arr /= scalar;
+}
+
+class Universe {
+public:
+    #pragma omp declare simd simdlen(4)
+    std::array<std::array<fp, 4>, 3> calculateAcceleration(const int i) const {
+        std::array<fp, 4> vnax{}; // vector new accellerations x;
+        std::array<fp, 4> vnay{};
+        std::array<fp, 4> vnaz{};
+        //fp nax = 0, nay = 0, naz = 0;
+        //#pragma omp simd reduction(+:nax, nay, naz, vnax) safelen(64)
+
+        for (int j = 0; j < (int)mass.size(); j += 4) {
+            //if (i != j) {
+                std::array<fp, 4> vdiffx;
+                std::array<fp, 4> vdiffy;
+                std::array<fp, 4> vdiffz;
+                for (int v = 0; v < 4; ++v) {
+                    vdiffx[v] = posx[j + v] - posx[i + v];
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vdiffy[v] = posy[j + v] - posy[i + v];
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vdiffz[v] = posz[j + v] - posz[i + v];
+                }
+                std::array<fp, 4> vnormsq;
+                for (int v = 0; v < 4; ++v) {
+                    vnormsq[v] = vdiffx[v] * vdiffx[v]
+                                + vdiffy[v] * vdiffy[v]
+                                + vdiffz[v] * vdiffz[v];
+                }
+                //#pragma omp simd
+                for (int v = 0; v < 4; ++v) {
+                    vnax[v] = mass[j + v] * vdiffx[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vnay[v] = mass[j + v] * vdiffy[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+                for (int v = 0; v < 4; ++v) {
+                    vnaz[v] = mass[j + v] * vdiffz[v] * pow(vnormsq[v], -3.0/2.0);
+                }
+            //}
+        }
+        return {vnax, vnay, vnaz};
+    }
+
+    void calculateNextStep() {
+        for (unsigned i = 0; i < mass.size(); ++i) {
+            position[i].x += velocity[i].x * timeStep + acceleration[i].x * timeStep * timeStep / 2;
+            position[i].y += velocity[i].y * timeStep + acceleration[i].y * timeStep * timeStep / 2;
+            position[i].z += velocity[i].z * timeStep + acceleration[i].z * timeStep * timeStep / 2;
+        }
+        #pragma omp simd
+        for (int i = 0; i < (int)mass.size(); i += 4) {
+            //newacc.x = nax;
+            const auto newaccs = calculateAcceleration(i);
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].x = newaccs[0][v];
+            }
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].y = newaccs[1][v];
+            }
+            for (int v = 0; v < 4; ++v) {
+                acceleration[i + v].z = newaccs[2][v];
+            }
+
+
+            acceleration[i];
+        }
+    }
+    Arr3 getnewaccx(const int i, const int j) const {
+        Arr3 diff = pos[j] - pos[i];
+        fp norm = diff.norm();
+        //Arr3 anorm = {norm, norm, norm};
+        diff *= std::pow<float>(norm, -3.0/2.0) * mass[j];
+        return diff;
+    }
+
+    void calcAcc2() {
+        const int size = (int)mass.size();
+        //#pragma omp simd
+        for (int i = 0; i < size; ++i) {
+            pos[i] += vel[i] * timeStep + acc[i] * (timeStep * timeStep / 2.0);
+        }
+
+        for (int i = 0; i < size; ++i) {
+            Arr3 newacc{};
+            for (int j = 0; j < i; ++j) {
+                newacc += getnewaccx(i, j);
+            }
+            for (int j = i + 1; j < size; ++j) {
+                newacc += getnewaccx(i, j);
+            }
+            for (int j = 0; j < size; ++j) {
+                Arr3 a = getnewaccx(i, j);
+                if (i == j) {
+                    a = {0, 0, 0};
+                }
+                newacc += a;
+            }
+            vel[i] += (acc[i] + newacc) * (timeStep / 2.0);
+            //accx[i] = newaccx + newacc[0]; // + newaccy + newaccz;
+            acc[i] = std::move(newacc);
+        }
+    }
+
+    const fp timeStep = 0.005;
+    std::vector<Arr3> pos;
+    std::vector<Arr3> vel;
+    std::vector<Arr3> acc;
+
+    std::vector<fp> mass;
+    std::vector<fp> posx;
+    std::vector<fp> posy;
+    std::vector<fp> posz;
+    std::vector<Vector3> position;
+    std::vector<Vector3> velocity;
+    std::vector<fp> accx;
+    std::vector<Vector3> acceleration;
+};
+
+
+
+int test(const int n) {
+    Universe u{};
+    //#pragma omp simd
+    for (int i = 0; i < n; ++i) {
+        u.mass.emplace_back(rand());
+        //u.mass.emplace_back(1.0);
+        u.position.emplace_back(i,i,i);
+        u.posx.emplace_back(i);
+        u.posy.emplace_back(i);
+        u.posz.emplace_back(i);
+        u.pos.emplace_back(i,i,i);
+    }
+    u.velocity.resize(n); u.acceleration.resize(n);
+    u.accx.resize(n);
+    u.vel.resize(n);
+    u.acc.resize(n);
+
+    u.calculateNextStep();
+    int res = 0;
+    /*for (auto i : u.mass) {
+        res += i * sqrt(i);
+    }*/
+    u.calcAcc2();
+    //res = u.acceleration[n/2].x;
+    std::vector<fp> a(n);
+    std::vector<fp> b(n);
+    std::vector<fp> c(n);
+    for (int i = 0; i < n; ++i) {
+        a[i] = b[i] + c[i];
+    }
+    res += u.acc[n/2][0] + u.acc[n/2][1] + u.acc[n/2][2];
+    res += u.vel[n/2][0] + u.vel[n/2][1] + u.vel[n/2][2];
+    return res;
+}
