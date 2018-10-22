@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <base/intel_stable_sort/parallel_stable_sort.h>
+#include <parallel/algorithm>
 
 SFCOctTree::SFCOctTree(const Vector3 pos[], const Vector3 vel[], const Vector3 acc[],
                        const fp mass[], const unsigned size) {
@@ -111,7 +112,8 @@ void merge(std::vector<Node>::iterator begin, std::vector<Node>::iterator center
 void SFCOctTree::sortTree() {
     auto start = omp_get_wtime();
 //    std::sort(tree.begin(), tree.end());
-    pss::parallel_stable_sort(tree.begin(), tree.end(), [](const Node &a, const Node &b){ return a < b; });
+//    pss::parallel_stable_sort(tree.begin(), tree.end(), [](const Node &a, const Node &b){ return a < b; });
+    __gnu_parallel::sort(tree.begin(), tree.end());
     auto stop = omp_get_wtime();
     std::cout << "Sorted in " << stop - start << " sec.\n";
 }
