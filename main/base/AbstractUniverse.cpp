@@ -11,8 +11,8 @@ AbstractUniverse::AbstractUniverse(std::shared_ptr<Settings> settings,
 
 }
 
-void AbstractUniverse::addBody(fp mass, Vector3 position, Vector3 velocity) {
-    addBody(mass, position, velocity, {0, 0, 0});
+void AbstractUniverse::addBody(fp &&mass, Vector3 &&position, Vector3 &&velocity) {
+    addBody(std::move(mass), std::move(position), std::move(velocity), {0, 0, 0});
 }
 
 void AbstractUniverse::initBodies(std::shared_ptr<UniverseShape> shape) {

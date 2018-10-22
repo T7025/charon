@@ -9,18 +9,13 @@ BarnesHutUniverse2::BarnesHutUniverse2(std::shared_ptr<Settings> settings, std::
 
 }
 
-void BarnesHutUniverse2::addBody(fp mass, Vector3 position, Vector3 velocity, Vector3 acceleration) {
-    this->position.emplace_back(Vector3Offload{position.x + 10, position.y + 10, position.z + 10});
+void BarnesHutUniverse2::addBody(fp &&mass, Vector3 &&position, Vector3 &&velocity, Vector3 &&acceleration) {
+    this->position.emplace_back(Vector3{position.x + 10, position.y + 10, position.z + 10});
     positionX.emplace_back(position.x);
     positionY.emplace_back(position.y);
     positionZ.emplace_back(position.z);
 }
 
 std::vector<Vector3> BarnesHutUniverse2::getPositions() const {
-    std::vector<Vector3> result;
-    result.reserve(bodyCount());
-    for (const auto &pos : position) {
-        result.push_back(pos.toVector3());
-    }
-    return result;
+    return position;
 }

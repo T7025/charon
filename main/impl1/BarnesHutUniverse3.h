@@ -15,26 +15,26 @@ public:
 
     ~BarnesHutUniverse3() override = default;
 
-    virtual void initBodies(std::shared_ptr<UniverseShape> shape);
+    void initBodies(std::shared_ptr<UniverseShape> shape) override;
 
-    virtual void addBody(fp mass, Vector3 position, Vector3 velocity, Vector3 acceleration);
+    void addBody(fp &&mass, Vector3 &&position, Vector3 &&velocity, Vector3 &&acceleration) override;
 
-    virtual size_t bodyCount() const;
+    size_t bodyCount() const override;
 
-    virtual void calculateFirstStep();
+    void calculateFirstStep() override;
 
-    virtual void calculateNextStep();
+    void calculateNextStep() override;
 
-    virtual void logInternalState() const;
+    void logInternalState() const override;
 
     // Used for testing
-    virtual std::vector<Vector3> getPositions() const;
+    std::vector<Vector3> getPositions() const override;
 
-    virtual fp calcEnergy() const;
+    fp calcEnergy() const override;
 
-    virtual Vector3 calcMomentum() const;
+    Vector3 calcMomentum() const override;
 
-    virtual void calcNextPosition();
+    void calcNextPosition() override;
 
 private:
     SFCOctTree tree;

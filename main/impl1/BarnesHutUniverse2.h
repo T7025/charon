@@ -7,12 +7,12 @@
 
 
 #include <base/AbstractUniverse.h>
-#include <base/Vector3Offload.h>
+#include <base/Vector3.h>
 #include <iostream>
 #include <bitset>
 
-struct Node {
-    Vector3Offload position;
+struct Node2 {
+    Vector3 position;
     fp mass;
     unsigned sfcIndex;
 };
@@ -21,7 +21,7 @@ class BarnesHutUniverse2 : public AbstractUniverse {
 public:
     BarnesHutUniverse2(std::shared_ptr<Settings> settings, std::shared_ptr<spdlog::logger> console);
 
-    void addBody(fp mass, Vector3 position, Vector3 velocity, Vector3 acceleration) override;
+    void addBody(fp &&mass, Vector3 &&position, Vector3 &&velocity, Vector3 &&acceleration) override;
     size_t bodyCount() const override { return position.size(); }
     void calculateFirstStep() override {}
     void calculateNextStep() override {}
@@ -34,7 +34,7 @@ public:
     /// Calculates the index of a position in the Z space filling curve.
     /// \param depth k
     /// \param cubeSize D
-    unsigned getSFC(const Vector3Offload position, const unsigned depth, const fp cubeSize) {
+    unsigned getSFC(const Vector3 position, const unsigned depth, const fp cubeSize) {
         fp mult = (1u << depth) / cubeSize;
         auto x = static_cast<unsigned int>(position.x * mult);
         auto y = static_cast<unsigned int>(position.y * mult);
@@ -105,9 +105,9 @@ private:
 
     std::vector<unsigned> sfcIndex;
 
-    std::vector<Vector3Offload> position;
+    std::vector<Vector3> position;
 
-    std::vector<Node> octTree;
+    std::vector<Node2> octTree;
 };
 
 

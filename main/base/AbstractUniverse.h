@@ -6,6 +6,7 @@
 #define CHARON_ABSTRACTUNIVERSE_H
 
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 #include <boost/property_tree/ptree.hpp>
 #include <settings/Settings.h>
 #include <universeShapes/UniverseShape.h>
@@ -23,8 +24,8 @@ public:
 
     virtual void initBodies(std::shared_ptr<UniverseShape> shape);
 
-    virtual void addBody(fp mass, Vector3 position, Vector3 velocity, Vector3 acceleration) = 0;
-    virtual void addBody(fp mass, Vector3 position, Vector3 velocity);
+    virtual void addBody(fp &&mass, Vector3 &&position, Vector3 &&velocity, Vector3 &&acceleration) = 0;
+    virtual void addBody(fp &&mass, Vector3 &&position, Vector3 &&velocity);
 
     virtual size_t bodyCount() const = 0;
 

@@ -1,6 +1,7 @@
 {
   "nr_iterations": 50,
   "snapshot_delta": 10,
-  "universe_type": "brute_force_multi_thread",
-  "universe_shape": "random_cube"
+  "universe_type": "barnes_hut_tree",
+  "universe_shape": "random_cube",
+  "barnes_hut_cutoff": 0.7
 }

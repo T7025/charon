@@ -4,13 +4,13 @@
 
 #include <celero/TestFixture.h>
 #include <base/AbstractUniverse.h>
-#include <impl1/BruteForceUniverse.h>
+#include <bruteForceImpl/BruteForceUniverse.h>
 #include <universeShapes/RandomCubeUniverseShape.h>
 #include <spdlog/sinks/null_sink.h>
 #include <celero/Celero.h>
-#include <impl1/BarnesHutUniverse.h>
-#include <impl1/BruteForceMultiThreadUniverse.h>
-#include <impl1/BruteForceOffloadUniverse3.h>
+#include <barnesHutTreeImpl/BarnesHutTreeUniverse.h>
+#include <bruteForceImpl/BruteForceMultiThreadUniverse.h>
+#include <bruteForceImpl/BruteForceOffloadUniverse3.h>
 #include "defaultSettings.h"
 
 
@@ -111,7 +111,7 @@ BENCHMARK_F(CalcNextPosition, BruteForceOffload, BruteForceOffload, 0, 0) {
     universe->calcNextPosition();
 }
 
-//typedef UniverseFixture<BarnesHutUniverse, RandomCubeUniverseShape, 10, LinearScaler> BarnesHutSingleThread;
+//typedef UniverseFixture<BarnesHutTreeUniverse, RandomCubeUniverseShape, 10, LinearScaler> BarnesHutSingleThread;
 //BENCHMARK_F(CalcNextPosition, BarnesHutSingleThread, BarnesHutSingleThread, 0, 0) {
 //    universe->calcNextPosition();
 //}

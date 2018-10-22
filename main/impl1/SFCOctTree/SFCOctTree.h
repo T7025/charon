@@ -7,28 +7,47 @@
 
 
 #include <vector>
+#include <memory>
 #include "Node.h"
 
+namespace spdlog {
+class logger;
+}
+
+//#pragma omp declare target
 class SFCOctTree {
 public:
-    SFCOctTree(const Vector3Offload pos[], const Vector3Offload vel[], const Vector3Offload acc[], const fp mass[], const unsigned size);
+    SFCOctTree(const Vector3 pos[], const Vector3 vel[], const Vector3 acc[], const fp mass[], const unsigned size);
+    SFCOctTree();
     ~SFCOctTree();
+
+    void addBody(fp mass, const Vector3 &pos, const Vector3 &vel, const Vector3 &acc);
+
+    void initBodies();
+
+    size_t size() const;
 
     void buildTree();
 
-    void calculateNodeData();
-
-    Vector3Offload calculateAcceleration(const Vector3Offload &position) const;
+    Vector3 calculateAcceleration(const Vector3 &position) const;
 
     void calcNextPosition(const fp timeStep);
 
+    void calculateFirstAcceleration(const fp timeStep);
+
+    void calculateAcceleration(const fp timeStep);
+
+    void logInternalState(const std::shared_ptr<spdlog::logger> &log) const;
+
+    std::vector<Vector3> getPositions() const;
+
 private:
     std::vector<Node> tree;
-    Vector3Offload treeBoundingBox;
+    Vector3 treeBoundingBox;
 
-    Vector3Offload scalePositions();
+    Vector3 scalePositions();
 
-    void calcSFCIndices(const Vector3Offload &spaceSize);
+    void calcSFCIndices(const Vector3 &spaceSize);
 
     void sortTree();
 
@@ -37,6 +56,8 @@ private:
     void removeDuplicateInternalNodes();
 
     void establishParentChildRel();
+
+    void calculateNodeData();
 
     friend std::ostream &operator<<(std::ostream &out, const SFCOctTree &tree);
 };

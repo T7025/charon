@@ -6,12 +6,16 @@
 #include <boost/property_tree/detail/ptree_implementation.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <universeShapes/BinaryUniverseShape.h>
-#include <impl1/BruteForceUniverse.h>
+#include <bruteForceImpl/BruteForceUniverse.h>
 #include <universeShapes/RandomCubeUniverseShape.h>
-#include <impl1/BarnesHutUniverse.h>
-#include <impl1/BruteForceMultiThreadUniverse.h>
-#include <impl1/BruteForceOffloadUniverse3.h>
-#include <impl1/BarnesHutUniverse2.h>
+#include <barnesHutSFCImpl/BarnesHutUniverse.h>
+#include <barnesHutTreeImpl/BarnesHutTreeUniverse.h>
+#include <bruteForceImpl/BruteForceMultiThreadUniverse.h>
+#include <bruteForceImpl/BruteForceOffloadUniverse3.h>
+#include <barnesHutSFCImpl/BarnesHutMultiThreadUniverse.h>
+#include <barnesHutSFCImpl/BarnesHutOffloadUniverse.h>
+//#include <impl1/BarnesHutUniverse2.h>
+//#include <impl1/BarnesHutUniverse3.h>
 
 Simulator::Simulator(std::shared_ptr<Settings> settings, std::shared_ptr<spdlog::logger> console) :
         nrOfSteps{settings->simulatorSettings->nrIterations},
@@ -27,10 +31,16 @@ void Simulator::setup2() {
         universe = std::make_shared<BruteForceMultiThreadUniverse>(settings, console);
     } else if (universeType == "brute_force_offload") {
         universe = std::make_shared<BruteForceOffloadUniverse3>(settings, console);
+    } else if (universeType == "barnes_hut_tree") {
+        universe = std::make_shared<BarnesHutTreeUniverse>(settings, console);
     } else if (universeType == "barnes_hut") {
         universe = std::make_shared<BarnesHutUniverse>(settings, console);
-    } else if (universeType == "barnes_hut2") {
-        universe = std::make_shared<BarnesHutUniverse2>(settings, console);
+    } else if (universeType == "barnes_hut_multi_thread") {
+        universe = std::make_shared<BarnesHutMultiThreadUniverse>(settings, console);
+    } else if (universeType == "barnes_hut_offload") {
+        universe = std::make_shared<BarnesHutOffloadUniverse>(settings, console);
+//    } else if (universeType == "barnes_hut3") {
+//        universe = std::make_shared<BarnesHutUniverse3>(settings, console);
     } else {
         throw std::runtime_error{"simulatorSettings: not a valid universe type"};
     }
@@ -47,18 +57,18 @@ void Simulator::setup2() {
 }
 
 void Simulator::run() {
-    snapShot();
     if (nrOfSteps > 0) {
         universe->calculateFirstStep();
     }
+    snapShot();
     for (unsigned i = 1; i < nrOfSteps; ++i) {
-        if (i % snapshotDelta == 0) {
-            snapShot();
-        }
         const auto startStepTime = std::chrono::high_resolution_clock::now();
         universe->calculateNextStep();
         std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - startStepTime;
-        //console->info("Duration step {}: {} seconds", i, duration.count());
+        console->info("Duration step {}: {} seconds", i, duration.count());
+        if (i % snapshotDelta == 0 && settings->fileSettings->enableFileOutput) {
+            snapShot();
+        }
     }
     snapShot();
 }

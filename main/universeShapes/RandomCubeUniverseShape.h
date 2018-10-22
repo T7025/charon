@@ -20,11 +20,11 @@ public:
         std::uniform_real_distribution<fp> positionDistr{-radius, radius};
         std::normal_distribution<fp> velocityDistr{0, radius/50};
         for (unsigned i = 0; i < nrBodies; ++i) {
-            fp mass{std::abs(massDistribution(engine))};
+            fp mass{std::abs(massDistribution(engine)) * radius * radius * radius / nrBodies};
             Vector3 position{positionDistr(engine), positionDistr(engine), positionDistr(engine)};
             Vector3 velocity{velocityDistr(engine), velocityDistr(engine), velocityDistr(engine)};
             Vector3 acceleration{0, 0, 0};
-            universe->addBody(mass, position, velocity, acceleration);
+            universe->addBody(std::move(mass), std::move(position), std::move(velocity), std::move(acceleration));
         }
     }
 };

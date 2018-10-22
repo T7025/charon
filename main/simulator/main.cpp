@@ -2,7 +2,7 @@
 // Created by thomas on 3/13/18.
 //
 
-#include <impl1/BruteForceUniverse.h>
+#include <bruteForceImpl/BruteForceUniverse.h>
 #include <universeShapes/BinaryUniverseShape.h>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>

@@ -3,13 +3,13 @@
 //
 
 #include <gtest/gtest.h>
-#include <impl1/BruteForceUniverse.h>
+#include <bruteForceImpl/BruteForceUniverse.h>
 #include <spdlog/sinks/null_sink.h>
 #include <universeShapes/BinaryUniverseShape.h>
 #include <universeShapes/RandomCubeUniverseShape.h>
-#include <impl1/BruteForceMultiThreadUniverse.h>
+#include <bruteForceImpl/BruteForceMultiThreadUniverse.h>
 //#include <impl1/BruteForceOffloadUniverse.h>
-#include <impl1/BruteForceOffloadUniverse3.h>
+#include <bruteForceImpl/BruteForceOffloadUniverse3.h>
 
 TEST(BruteForceUniverse, BinaryUniverseShape) {
     auto settings = std::make_shared<Settings>();
@@ -52,6 +52,8 @@ TEST(BruteForceUniverse, BruteForceMultiThreadUniverse) {
     singleThreadUniverse->initBodies(std::make_shared<RandomCubeUniverseShape>());
     multiThreadUniverse->initBodies(std::make_shared<RandomCubeUniverseShape>());
     fp maxDeviation = 0;
+
+
     for (int i = 0; i < 100; ++i) {
         singleThreadUniverse->calculateNextStep();
         multiThreadUniverse->calculateNextStep();

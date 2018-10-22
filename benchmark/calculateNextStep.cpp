@@ -2,12 +2,15 @@
 // Created by thomas on 5/12/18.
 //
 
-#include <impl1/BruteForceUniverse.h>
+#include <bruteForceImpl/BruteForceUniverse.h>
 #include <universeShapes/RandomCubeUniverseShape.h>
-#include <impl1/BruteForceOffloadUniverse3.h>
+#include <bruteForceImpl/BruteForceOffloadUniverse3.h>
 #include <celero/Celero.h>
 #include <spdlog/sinks/null_sink.h>
-#include <impl1/BruteForceMultiThreadUniverse.h>
+#include <bruteForceImpl/BruteForceMultiThreadUniverse.h>
+#include <barnesHutTreeImpl/BarnesHutTreeUniverse.h>
+#include <barnesHutSFCImpl/BarnesHutUniverse.h>
+#include <barnesHutSFCImpl/BarnesHutMultiThreadUniverse.h>
 //#include "defaultSettings.h"
 
 template<typename UniverseType, typename UniverseShape>
@@ -31,9 +34,13 @@ public:
     std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const override {
         std::vector<std::pair<int64_t, uint64_t>> problemSpace;
 
-        const int totalNumberOfTests = 10;
+//        const int totalNumberOfTests = 11;
+//        auto getNrBodies = [&](unsigned i) {  // Must never return 0.
+//            return std::pow(2, i+4);
+//        };
+        const int totalNumberOfTests = 2;
         auto getNrBodies = [&](unsigned i) {  // Must never return 0.
-            return std::pow(2, i+4);
+            return std::pow(2, i+14);
         };
 
         /*auto getNrIterations = [&](unsigned i) {  // Must return MinIterations if i == totalNumberOfTests
@@ -77,12 +84,15 @@ protected:
     }
 };
 
-typedef UniverseFixture<BruteForceUniverse, RandomCubeUniverseShape> BruteForceSingleThread;
-BASELINE_F(CalculateNextStep, BruteForceSingleThread, BruteForceSingleThread, 0, 0) {
-    universe->calculateNextStep();
-}
+//typedef UniverseFixture<BruteForceUniverse, RandomCubeUniverseShape> BruteForceSingleThread;
+//BASELINE_F(CalculateNextStep, BruteForceSingleThread, BruteForceSingleThread, 0, 0) {
+//    auto start = omp_get_wtime();
+//    universe->calculateNextStep();
+//    auto end = omp_get_wtime();
+//    std::cout << "BruteForceUniverse: "<< end - start << " sec.\n";
+//}
 
-typedef UniverseFixture<BruteForceMultiThreadUniverse, RandomCubeUniverseShape> BruteForceMultiThread;
+/*typedef UniverseFixture<BruteForceMultiThreadUniverse, RandomCubeUniverseShape> BruteForceMultiThread;
 BENCHMARK_F(CalculateNextStep, BruteForceMultiThread, BruteForceMultiThread, 0, 0) {
     universe->calculateNextStep();
 }
@@ -91,3 +101,30 @@ typedef UniverseFixture<BruteForceOffloadUniverse3, RandomCubeUniverseShape> Bru
 BENCHMARK_F(CalculateNextStep, BruteForceOffload, BruteForceOffload, 0, 0) {
     universe->calculateNextStep();
 }
+
+typedef UniverseFixture<BarnesHutTreeUniverse, RandomCubeUniverseShape> BarnesHutTree;
+BENCHMARK_F(CalculateNextStep, BarnesHutTree, BarnesHutTree, 0, 0) {
+    universe->calculateNextStep();
+}*/
+
+typedef UniverseFixture<BarnesHutUniverse, RandomCubeUniverseShape> BarnesHut;
+BASELINE_F(CalculateNextStep, BarnesHut, BarnesHut, 0, 0) {
+    auto start = omp_get_wtime();
+    universe->calculateNextStep();
+    auto end = omp_get_wtime();
+    std::cout << "BarnesHutUniverse: "<< end - start << " sec.\n";
+}
+
+typedef UniverseFixture<BarnesHutMultiThreadUniverse, RandomCubeUniverseShape> BarnesHutMultiThread;
+BENCHMARK_F(CalculateNextStep, BarnesHutMultiThread, BarnesHutMultiThread, 0, 0) {
+    auto start = omp_get_wtime();
+    universe->calculateNextStep();
+    auto end = omp_get_wtime();
+    std::cout << "BarnesHutMultiThreadUniverse: "<< end - start << " sec.\n";
+}
+
+/*
+typedef UniverseFixture<BarnesHutTreeUniverse, RandomCubeUniverseShape> BarnesHutOffload;
+BENCHMARK_F(CalculateNextStep, BarnesHutOffload, BarnesHutOffload, 0, 0) {
+    universe->calculateNextStep();
+}*/

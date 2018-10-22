@@ -4,11 +4,13 @@
 
 #include "SFCOctTree.h"
 #include <omp.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 #include <limits>
 #include <algorithm>
 #include <cassert>
 
-SFCOctTree::SFCOctTree(const Vector3Offload pos[], const Vector3Offload vel[], const Vector3Offload acc[],
+SFCOctTree::SFCOctTree(const Vector3 pos[], const Vector3 vel[], const Vector3 acc[],
                        const fp mass[], const unsigned size) {
     tree.resize(size);
     for (unsigned i = 0; i < size; ++i) {
@@ -16,9 +18,27 @@ SFCOctTree::SFCOctTree(const Vector3Offload pos[], const Vector3Offload vel[], c
     }
 }
 
+
+SFCOctTree::SFCOctTree() {
+
+}
+
 SFCOctTree::~SFCOctTree() {
     //delete(tree);
 }
+
+void SFCOctTree::addBody(fp mass, const Vector3 &pos, const Vector3 &vel, const Vector3 &acc) {
+    tree.emplace_back(pos, vel, acc, mass);
+}
+
+void SFCOctTree::initBodies() {
+
+}
+
+size_t SFCOctTree::size() const {
+    return tree.size();
+}
+
 
 void SFCOctTree::buildTree() {
     // Scale positions so a corner of the bounding box is at (0,0,0); calculate size of bounding box.
@@ -41,13 +61,13 @@ void SFCOctTree::buildTree() {
     std::cout << "Calculated node data" << std::endl;
 }
 
-Vector3Offload SFCOctTree::scalePositions() {
-    Vector3Offload min = {
+Vector3 SFCOctTree::scalePositions() {
+    Vector3 min = {
             std::numeric_limits<fp>::infinity(),
             std::numeric_limits<fp>::infinity(),
             std::numeric_limits<fp>::infinity()
     };
-    Vector3Offload max = {
+    Vector3 max = {
             -std::numeric_limits<fp>::infinity(),
             -std::numeric_limits<fp>::infinity(),
             -std::numeric_limits<fp>::infinity()
@@ -65,11 +85,11 @@ Vector3Offload SFCOctTree::scalePositions() {
     for (unsigned i = 0; i < treeSize; ++i) {
         tree[i].getPosition() -= min;
     }
-    Vector3Offload spaceSize = max - min;
+    Vector3 spaceSize = max - min;
     return spaceSize;
 }
 
-void SFCOctTree::calcSFCIndices(const Vector3Offload &spaceSize) {
+void SFCOctTree::calcSFCIndices(const Vector3 &spaceSize) {
     for (unsigned i = 0; i < tree.size(); ++i) {
         tree[i].getSFCIndex().x = uintv(std::pow(2, k)* (tree[i].getPosition().x / spaceSize.x)) - uintv(tree[i].getPosition().x == spaceSize.x);
         tree[i].getSFCIndex().y = uintv(std::pow(2, k) * (tree[i].getPosition().y / spaceSize.y)) - uintv(tree[i].getPosition().y == spaceSize.y);
@@ -114,18 +134,12 @@ void SFCOctTree::removeDuplicateInternalNodes() {
 }
 
 void SFCOctTree::establishParentChildRel() {
-//    std::cout << *this <<"\n";
-    std::vector<Node> treeHelper = tree;
-
-    for (unsigned i = 0; i < tree.size(); ++i) {
-        treeHelper[i].getChildren()[7] = i;
-    }
     auto treeSize = tree.size();
 
-    treeHelper.resize(2 * treeSize - 1);
+    tree.resize(2 * treeSize - 1);
 
     for (unsigned i = 0; i < treeSize - 1; ++i) {
-        auto shift = abs(tree[i].getDepth() - tree[i+1].getDepth()) + k - std::max(tree[i].getDepth(), tree[i+1].getDepth());
+        auto shift = k - std::min(tree[i].getDepth(), tree[i+1].getDepth());
         auto xorX = __builtin_clzll((tree[i].getSFCIndex().x ^ tree[i+1].getSFCIndex().x) >> shift);
         auto xorY = __builtin_clzll((tree[i].getSFCIndex().y ^ tree[i+1].getSFCIndex().y) >> shift);
         auto xorZ = __builtin_clzll((tree[i].getSFCIndex().z ^ tree[i+1].getSFCIndex().z) >> shift);
@@ -139,56 +153,46 @@ void SFCOctTree::establishParentChildRel() {
         mask >>= depth;
         mask >>= sizeof(mask) * 8 - k;
 
-        treeHelper[treeSize + i].getSFCIndex().x = tree[i].getSFCIndex().x | mask;
-        treeHelper[treeSize + i].getSFCIndex().y = tree[i].getSFCIndex().y | mask;
-        treeHelper[treeSize + i].getSFCIndex().z = tree[i].getSFCIndex().z | mask;
-        treeHelper[treeSize + i].getDepth() = depth;
-        treeHelper[treeSize + i].getChildren()[0] = i;
+        tree[treeSize + i].getSFCIndex().x = tree[i].getSFCIndex().x | mask;
+        tree[treeSize + i].getSFCIndex().y = tree[i].getSFCIndex().y | mask;
+        tree[treeSize + i].getSFCIndex().z = tree[i].getSFCIndex().z | mask;
+        tree[treeSize + i].getDepth() = depth;
+        tree[treeSize + i].getChildren()[0] = i;
     }
 
     auto nodeCompWChildren = [](const Node &lhs, const Node &rhs){
-        return lhs < rhs || lhs == rhs && lhs.getChildren()[0] < rhs.getChildren()[0];
+        return lhs < rhs || (lhs == rhs && lhs.getChildren()[0] < rhs.getChildren()[0]);
     };
 
-    std::sort(treeHelper.begin(), treeHelper.end(), nodeCompWChildren);
+    std::sort(tree.begin() + treeSize, tree.end(), nodeCompWChildren);
 
-    /*std::cout << "\n\n";
-    std::string tabSpace = "| ";
-    for (const auto &node : treeHelper) {
-        std::string tab;
-        for (int i = 0; i < node.getDepth(); ++i) {
-            tab += tabSpace;
-        }
-        std::cout << tab << node << "\n";
-    }*/
-
-    bool repeat = true;
-    unsigned repeatIndex = 0;
-    while (repeat) {
-        for (unsigned i = 0; i < treeHelper.size() - repeatIndex - 1; ++i) {
-            repeat = false;
-            const auto &n1 = treeHelper[i];
-            const auto &n2 = treeHelper[i + repeatIndex + 1];
-            if (n1 == n2) {
-                repeat = true;
-                if (n1.getChildren()[0] < 0) {
-//                    std::cout << n1.children.back() << " -> " << n2.children.front()<< "\n";
-                    tree[n1.getChildren()[7]].getChildren()[repeatIndex] = n2.getChildren()[0];
-                } /*else if (n2.getChildren()[0] < 0) {
-//                    std::cout << n2.children.back() << " -> " << n1.children.front()<< "\n";
-                    tree[n2.getChildren()[7]].getChildren()[repeatIndex] = n1.getChildren()[0];
-                }*/
+    for (unsigned i = treeSize; i < tree.size(); ++i) {
+        if (i == tree.size() - 1 || !(tree[i] == tree[i+1])) {
+            unsigned j;
+            for (j = 1; j < 8; ++j) {
+                if (tree[i] == tree[i - j]) {
+                    tree[i].getChildren()[j] = tree[i - j].getChildren()[0];
+                } else {
+                    break;
+                }
+            }
+            const auto parentIndex = tree[i].getChildren()[0] + 1;
+            // 0 < j < 8
+            for (unsigned k = 0; k < j; ++k) {
+                tree[parentIndex].getChildren()[k] = tree[i].getChildren()[j - 1 - k];
             }
         }
-        repeatIndex++;
     }
+    std::cout << *this <<"\n";
+    tree.resize(treeSize);
+//    std::cout << *this <<"\n";
 }
 
 void SFCOctTree::calculateNodeData() {
     for (unsigned i = 0; i < tree.size(); ++i) {
         if (tree[i].getDepth() != k) {
             fp mass = 0;
-            Vector3Offload position = {0,0,0};
+            Vector3 position = {0,0,0};
             for (unsigned j = 0; j < 8; ++j) {
                 // If parallel: check tree[tree[i].getChildren()[j]].getMass() >= 0 to see if
                 // child data is already calculated
@@ -206,8 +210,8 @@ void SFCOctTree::calculateNodeData() {
     }
 }
 
-Vector3Offload SFCOctTree::calculateAcceleration(const Vector3Offload &position) const {
-    Vector3Offload result = {0,0,0};
+Vector3 SFCOctTree::calculateAcceleration(const Vector3 &position) const {
+    Vector3 result = {0,0,0};
 
     std::vector<unsigned> stack;
     stack.reserve(k);
@@ -254,9 +258,9 @@ Vector3Offload SFCOctTree::calculateAcceleration(const Vector3Offload &position)
 //            } else {
 //                std::cout << "direct contact\n";
 //            }
-            const Vector3Offload diff = curNode.getPosition() - position;
+            const Vector3 diff = curNode.getPosition() - position;
             const fp norm = diff.norm();
-            result += diff * (curNode.getMass() / norm * norm * norm);
+            result += diff * (curNode.getMass() / (norm * norm * norm));
             continue;
         } else {
 //            std::cout << "else\n";
@@ -284,14 +288,53 @@ void SFCOctTree::calcNextPosition(const fp timeStep) {
     }
 }
 
+void SFCOctTree::calculateFirstAcceleration(const fp timeStep) {
+    for (unsigned i = 0; i < tree.size(); ++i) {
+        if (tree[i].isLeaf()) {
+            Vector3 newAcceleration = calculateAcceleration(tree[i].getPosition());
+            tree[i].getVelocity() += newAcceleration * timeStep;
+            tree[i].getAcceleration() = newAcceleration;
+        }
+    }
+}
+
+void SFCOctTree::calculateAcceleration(const fp timeStep) {
+    for (unsigned i = 0; i < tree.size(); ++i) {
+        if (tree[i].isLeaf()) {
+            Vector3 newAcceleration = calculateAcceleration(tree[i].getPosition());
+            tree[i].getVelocity() += (tree[i].getAcceleration() + newAcceleration) * timeStep / 2;
+            tree[i].getAcceleration() = newAcceleration;
+        }
+    }
+}
+
 std::ostream &operator<<(std::ostream &out, const SFCOctTree &tree) {
-    std::string tabSpace = "| ";
+    std::string tabSpace = "'";
     for (const auto &node : tree.tree) {
         std::string tab;
-        for (int i = 0; i < node.getDepth(); ++i) {
+        for (unsigned i = 0; i < node.getDepth(); ++i) {
             tab += tabSpace;
         }
         out << tab << node << "\n";
     }
     return out;
 }
+
+void SFCOctTree::logInternalState(const std::shared_ptr<spdlog::logger> &log) const {
+    for (unsigned i = 0; i < tree.size(); ++i) {
+        if (tree[i].isLeaf()) {
+            log->info("{},{},{},{}", tree[i].getMass(), tree[i].getPosition(), tree[i].getVelocity(), tree[i].getAcceleration());
+        }
+    }
+}
+
+std::vector<Vector3> SFCOctTree::getPositions() const {
+    std::vector<Vector3> result{};
+    for (unsigned i = 0; i < tree.size(); ++i) {
+        if (tree[i].isLeaf()) {
+            result.push_back(tree[i].getPosition());
+        }
+    }
+    return result;
+}
+

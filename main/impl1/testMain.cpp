@@ -5,10 +5,10 @@
 #include <settings/Settings.h>
 #include <spdlog/sinks/null_sink.h>
 //#include "BruteForceOffloadUniverse.h"
-#include "BruteForceUniverse.h"
-#include "BruteForceMultiThreadUniverse.h"
+#include "bruteForceImpl/BruteForceUniverse.h"
+#include "bruteForceImpl/BruteForceMultiThreadUniverse.h"
 //#include "BruteForceOffloadUniverse2.h"
-#include "BruteForceOffloadUniverse3.h"
+#include "bruteForceImpl/BruteForceOffloadUniverse3.h"
 #include "BarnesHutUniverse2.h"
 #include <universeShapes/RandomCubeUniverseShape.h>
 #include <iostream>
@@ -93,13 +93,26 @@ void test4() {
 
 //    for (const auto &pos : universe.getPositions()) {
 //        std::cout << pos << "\n";
-//        auto sfcIndex = universe.getSFC(Vector3Offload{pos}, 1, 20);
+//        auto sfcIndex = universe.getSFC(Vector3{pos}, 1, 20);
 //        std::cout << "  " << std::bitset<sizeof(unsigned)*8>{sfcIndex} << "\n";
 //    }
     universe.buildTree();
 }
 
 int main() {
-    test4();
+
+    std::vector<int> v;
+    v.reserve(1000);
+    for (int i = 0; i < v.capacity(); ++i) {
+        v[i] = i;
+    }
+    std::cout << v.capacity() <<"\n";
+    std::cout << v.size() <<"\n";
+    v.resize(1000);
+    for (int i = 0; i < v.capacity(); ++i) {
+        std::cout << v[i] <<",";
+    }
+    std::cout << std::endl;
+
     return 0;
 }

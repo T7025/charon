@@ -7,7 +7,7 @@
 
 
 #include <iostream>
-#include <base/Vector3Offload.h>
+#include <base/Vector3.h>
 #include "SFCIndex.h"
 
 class TestPoint {
@@ -19,41 +19,123 @@ public:
 class Node {
 public:
     Node() : sfcIndex{}, depth{}, mass{-1}, position{}, data{} {};
-    Node(const Vector3Offload &pos, const Vector3Offload &vel, const Vector3Offload &acc, const fp mass) :
+    Node(const Vector3 &pos, const Vector3 &vel, const Vector3 &acc, const fp mass) :
             sfcIndex{}, depth{k}, mass{mass}, position{pos}, data{vel, acc} {}
-    const Vector3Offload &getPosition() const;
-    Vector3Offload &getPosition();
-    const SFCIndex &getSFCIndex() const;
-    SFCIndex &getSFCIndex();
-    const unsigned &getDepth() const;
-    unsigned &getDepth();
-    const intv *getChildren() const;
-    intv *getChildren();
-    const fp &getMass() const;
-    fp &getMass();
-    const Vector3Offload &getVelocity() const;
-    Vector3Offload &getVelocity();
-    const Vector3Offload &getAcceleration() const;
-    Vector3Offload &getAcceleration();
+//    const Vector3 &getPosition() const;
+//    Vector3 &getPosition();
+//    const SFCIndex &getSFCIndex() const;
+//    SFCIndex &getSFCIndex();
+//    const unsigned &getDepth() const;
+//    unsigned &getDepth();
+//    const intv *getChildren() const;
+//    intv *getChildren();
+//    const fp &getMass() const;
+//    fp &getMass();
+//    const Vector3 &getVelocity() const;
+//    Vector3 &getVelocity();
+//    const Vector3 &getAcceleration() const;
+//    Vector3 &getAcceleration();
+//
+//    bool isLeaf() const;
+//    bool isParentOf(const Node &other) const;
+//
+//    bool operator<(const Node &other) const;
+//    bool operator==(const Node &other) const;
+    const Vector3 &getPosition() const {
+        return position;
+    }
 
-    bool isLeaf() const;
+    Vector3 &getPosition() {
+        return position;
+    }
 
-    bool operator<(const Node &other) const;
-    bool operator==(const Node &other) const;
+    const SFCIndex &getSFCIndex() const {
+        return sfcIndex;
+    }
+
+    SFCIndex &getSFCIndex() {
+        return sfcIndex;
+    }
+
+    bool operator==(const Node &other) const {
+        return sfcIndex == other.sfcIndex && depth == other.depth;
+    }
+
+    const unsigned &getDepth() const {
+        return depth;
+    }
+
+    unsigned &getDepth() {
+        return depth;
+    }
+
+    const intv *getChildren() const {
+        return data.children;
+    }
+
+    intv *getChildren() {
+        return data.children;
+    }
+
+    const fp &getMass() const {
+        return mass;
+    }
+
+    fp &getMass() {
+        return mass;
+    }
+
+    const Vector3 &getVelocity() const {
+        return data.leafData.vel;
+    }
+
+    Vector3 &getVelocity() {
+        return data.leafData.vel;
+    }
+
+    const Vector3 &getAcceleration() const {
+        return data.leafData.acc;
+    }
+
+    Vector3 &getAcceleration() {
+        return data.leafData.acc;
+    }
+
+    bool isLeaf() const {
+        return depth == k;
+    }
+
+    bool isParentOf(const Node &other) const {
+        if (depth < other.depth) {
+            auto shift = k - depth + (sizeof(uintv) * 8 - k);
+            const auto isMax = static_cast<const unsigned>(shift == sizeof(uintv) * 8);
+            shift -= isMax;
+            if (((sfcIndex.x ^ other.sfcIndex.x) >> shift) >> isMax == 0
+                && ((sfcIndex.y ^ other.sfcIndex.y) >> shift) >> isMax == 0
+                && ((sfcIndex.z ^ other.sfcIndex.z) >> shift) >> isMax == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool operator<(const Node &other) const {
+        return sfcIndex < other.sfcIndex || (other.sfcIndex == sfcIndex && depth > other.depth);
+    }
 
 private:
     SFCIndex sfcIndex;
     unsigned depth;
     fp mass;
-    Vector3Offload position;
+    Vector3 position;
 
     union Data {
         Data() : children{-1,-1,-1,-1,-1,-1,-1,-1} {}
-        Data(const Vector3Offload &vel, const Vector3Offload &acc) : leafData{vel, acc} {}
+        Data(const Vector3 &vel, const Vector3 &acc) : leafData{vel, acc} {}
         intv children[8];
         struct {
-            Vector3Offload vel;
-            Vector3Offload acc;
+            Vector3 vel;
+            Vector3 acc;
         } leafData;
     } data;
 };

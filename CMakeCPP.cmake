@@ -2,7 +2,7 @@
 # Check CMAKE_BUILD_TYPE
 #----------------------------------------------------------------------------
 if (NOT (CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "Debug"))
-    message(FATAL_ERROR "========> CMAKE_BUILD_TYPE HAS TO MATCH EITHER Release OR Debug.")
+    message(FATAL_ERROR "========> CMAKE_BUILD_TYPE HAS TO MATCH EITHER Release OR Debug. (current is ${CMAKE_BUILD_TYPE})")
 endif ()
 
 #----------------------------------------------------------------------------

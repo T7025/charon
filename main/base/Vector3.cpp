@@ -8,7 +8,7 @@
 #include "Vector3.h"
 
 
-Vector3::Vector3(fp x, fp y, fp z) : x{x}, y{y}, z{z} {}
+/*Vector3::Vector3(fp x, fp y, fp z) : x{x}, y{y}, z{z} {}
 
 Vector3 &Vector3::operator+=(const Vector3 &other) {
     x += other.x;
@@ -101,7 +101,7 @@ Vector3 operator*(fp scalar, Vector3 rhs) {
 
 Vector3 operator/(Vector3 lhs, fp scalar) {
     return lhs /= scalar;
-}
+}*/
 
 std::ostream &operator<<(std::ostream &out, const Vector3 &vector) {
     out << vector.x << "," << vector.y << "," << vector.z;
