@@ -9,6 +9,7 @@
 #include <limits>
 #include <algorithm>
 #include <cassert>
+#include <base/intel_stable_sort/parallel_stable_sort.h>
 
 SFCOctTree::SFCOctTree(const Vector3 pos[], const Vector3 vel[], const Vector3 acc[],
                        const fp mass[], const unsigned size) {
@@ -97,8 +98,22 @@ void SFCOctTree::calcSFCIndices(const Vector3 &spaceSize) {
     }
 }
 
+
+void merge(std::vector<Node>::iterator begin, std::vector<Node>::iterator center, std::vector<Node>::iterator end) {
+    auto centerCopy = center;
+    for (auto it1 = begin, it2 = center; it1 < centerCopy; ++it1) {
+
+
+    }
+}
+
+
 void SFCOctTree::sortTree() {
-    std::sort(tree.begin(), tree.end());
+    auto start = omp_get_wtime();
+//    std::sort(tree.begin(), tree.end());
+    pss::parallel_stable_sort(tree.begin(), tree.end(), [](const Node &a, const Node &b){ return a < b; });
+    auto stop = omp_get_wtime();
+    std::cout << "Sorted in " << stop - start << " sec.\n";
 }
 
 void SFCOctTree::generateInternalNodes() {
@@ -183,7 +198,7 @@ void SFCOctTree::establishParentChildRel() {
             }
         }
     }
-    std::cout << *this <<"\n";
+//    std::cout << *this <<"\n";
     tree.resize(treeSize);
 //    std::cout << *this <<"\n";
 }

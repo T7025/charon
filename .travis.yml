@@ -1,0 +1,24 @@
+language: cpp
+dist: trusty
+
+cache:
+  directories:
+  - $HOME/.ccache
+  - $HOME/deps
+
+addons:
+  apt:
+    update: true
+    sources: &default_sources
+      - ubuntu-toolchain-r-test
+
+matrix:
+  include:
+  - os: linux
+    compiler: gcc
+    env: CXX_NAME='g++-7'
+    addons: {apt: { packages: [*default_packages, g++-7], sources: [*default_sources]}}
+
+
+
+

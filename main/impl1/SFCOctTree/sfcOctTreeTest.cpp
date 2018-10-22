@@ -12,7 +12,7 @@ void fun1() {
     std::vector<Vector3> vel;
     std::vector<Vector3> acc;
 
-    for (int i = 0; i < 198; ++i) {
+    for (int i = 0; i < 1999998; ++i) {
 //        mass.emplace_back(double(rand()) / RAND_MAX * 1);
         mass.emplace_back(1);
         pos.emplace_back(double(rand()) / RAND_MAX * 10, double(rand()) / RAND_MAX * 10, double(rand()) / RAND_MAX * 10);
