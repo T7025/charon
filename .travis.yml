@@ -35,6 +35,8 @@ install:
     sudo sh cmake-$version.$build-Linux-x86_64.sh --prefix=/opt/cmake
 
     sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+  - |
+    cmake --version
 
 
 

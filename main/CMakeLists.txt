@@ -1,4 +1,5 @@
-set(LIB_SRC
+set(
+        LIB_SRC
         simulator/Simulator.cpp
         base/AbstractUniverse.cpp
         base/AbstractUniverse.h
@@ -27,8 +28,8 @@ set(LIB_SRC
         base/Timer.h
         bruteForceImpl/BruteForceMultiThreadUniverse.cpp
         bruteForceImpl/BruteForceMultiThreadUniverse.h
-#        impl1/BruteForceOffloadUniverse.cpp
-#        impl1/BruteForceOffloadUniverse.h
+        #        impl1/BruteForceOffloadUniverse.cpp
+        #        impl1/BruteForceOffloadUniverse.h
         base/Vector3.cpp
         base/Vector3.h
         #impl1/BruteForceOffloadUniverse2.cpp impl1/BruteForceOffloadUniverse2.h
@@ -38,10 +39,15 @@ set(LIB_SRC
         impl1/SFCOctTree/Node.cpp impl1/SFCOctTree/Node.h
         impl1/SFCOctTree/SFCIndex.cpp impl1/SFCOctTree/SFCIndex.h
         impl1/SFCOctTree/constants.h
-        impl1/BarnesHutUniverse3.cpp impl1/BarnesHutUniverse3.h bruteForceImpl/BruteForceUniverseBase.cpp bruteForceImpl/BruteForceUniverseBase.h barnesHutSFCImpl/BarnesHutUniverseBase.cpp barnesHutSFCImpl/BarnesHutUniverseBase.h barnesHutSFCImpl/BarnesHutUniverse.cpp barnesHutSFCImpl/BarnesHutUniverse.h barnesHutSFCImpl/BarnesHutMultiThreadUniverse.cpp barnesHutSFCImpl/BarnesHutMultiThreadUniverse.h
+        impl1/BarnesHutUniverse3.cpp impl1/BarnesHutUniverse3.h
+        bruteForceImpl/BruteForceUniverseBase.cpp bruteForceImpl/BruteForceUniverseBase.h
+        barnesHutSFCImpl/BarnesHutUniverseBase.cpp barnesHutSFCImpl/BarnesHutUniverseBase.h
+        barnesHutSFCImpl/BarnesHutUniverse.cpp barnesHutSFCImpl/BarnesHutUniverse.h
+        barnesHutSFCImpl/BarnesHutMultiThreadUniverse.cpp barnesHutSFCImpl/BarnesHutMultiThreadUniverse.h
         base/intel_stable_sort/parallel_stable_sort.h
         base/intel_stable_sort/pss_common.h
-        barnesHutSFCImpl/BarnesHutOffloadUniverse.cpp barnesHutSFCImpl/BarnesHutOffloadUniverse.h)
+        barnesHutSFCImpl/BarnesHutOffloadUniverse.cpp barnesHutSFCImpl/BarnesHutOffloadUniverse.h
+)
 
 add_library(libcharon ${LIB_SRC})
 #target_link_libraries(libcharon ${LIBS})

@@ -25,7 +25,7 @@ endif ()
 #============================================================================
 add_subdirectory(external)
 add_subdirectory(main)
-add_subdirectory(main/simple1)  # charon01
+#add_subdirectory(main/simple1)  # charon01
 add_subdirectory(test)
 add_subdirectory(benchmark)
 if (STRIDE_INCLUDE_DOC)
